@@ -1,0 +1,52 @@
+{
+	"Name": "afterburner-viewer",
+	"Version": "0.1.0.0",
+	"Author": "com.github/wojciesh",
+	"Actions": [
+		{
+			"Name": "Counter",
+			"UUID": "wsh.afterburner-viewer.increment",
+			"Icon": "imgs/actions/counter/icon",
+			"Tooltip": "Displays a count, which increments by one on press.",
+			"PropertyInspectorPath": "ui/increment-counter.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/counter/key",
+					"TitleAlignment": "middle"
+				}
+			]
+		}
+	],
+	"Category": "afterburner-viewer",
+	"CategoryIcon": "imgs/plugin/category-icon",
+	"CodePath": "bin/plugin.js",
+	"Description": "View MSI Afterburner info on your StreamDeck",
+	"Icon": "imgs/plugin/marketplace",
+	
+	"ApplicationsToMonitor": {
+        "windows": ["AfterburnerViewerServerWin.exe"]
+    },
+	
+	"SDKVersion": 2,
+	"Software": {
+		"MinimumVersion": "6.5"
+	},
+	"OS": [
+		{
+			"Platform": "mac",
+			"MinimumVersion": "10.15"
+		},
+		{
+			"Platform": "windows",
+			"MinimumVersion": "10"
+		}
+	],
+	"Nodejs": {
+		"Version": "20",
+		"Debug": "enabled"
+	},
+	"UUID": "wsh.afterburner-viewer"
+}
