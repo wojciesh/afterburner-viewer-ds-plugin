@@ -30,12 +30,13 @@ export class IncrementCounter extends SingletonAction<CounterSettings> {
 	client: any = null;
 
 	ipcConnect() {
-		const PIPE_NAME = 'ab2sd3';
+		const PIPE_NAME = 'ab2sd4';
 		const PIPE_PATH = '\\\\.\\pipe\\';
 		
-		streamDeck.logger.info("Connecting to IPC server!");
+		streamDeck.logger.info("First Disconnecting from IPC server!");
 		this.client?.end();
 		this.client = null;
+		streamDeck.logger.info("Connecting to IPC server!");
 
 		const client = net.createConnection(PIPE_PATH + PIPE_NAME, () => {
 			streamDeck.logger.info('connected to server!');
@@ -43,7 +44,7 @@ export class IncrementCounter extends SingletonAction<CounterSettings> {
 		
 		client.on('data', (data) => {
 			streamDeck.logger.info(`Received: ${data.toString()}`);
-			// this.data = data.toString();
+			this.data = data.toString();
 		});
 		
 		client.on('end', () => {
@@ -108,7 +109,7 @@ export class IncrementCounter extends SingletonAction<CounterSettings> {
 			if (typeof settings.timer !== 'undefined' && settings.timer !== null) {
 				streamDeck.logger.info("KD TIMER: " + settings.timer);
 
-				if (!settings.enabled) {
+				// if (!settings.enabled) {
 					streamDeck.logger.info("KD TURN OFF");
 
 					// try get the timer and clear it
@@ -121,39 +122,38 @@ export class IncrementCounter extends SingletonAction<CounterSettings> {
 					} else {
 						streamDeck.logger.info("KD TIMER NOT FOUND IN MAP");
 					}
-				}
-
-			} else {
-
-				streamDeck.logger.info("KD NO TIMER");
-
-				if (settings.enabled) {
-					streamDeck.logger.info("KD TURN ON");
-
-					streamDeck.logger.info("KD START TIMER");
-
-					try {
-						const uniqueId = randomUUID();
-						this.timers.set(uniqueId,
-							setInterval(() => {
-							streamDeck.logger.info(`LOOP ENABLED: ${settings.enabled}`);
-							streamDeck.logger.info(`LOOP TIMER: ${settings.timer}`);
-							streamDeck.logger.info(`LOOP TYPE: ${this.type}`);
-							streamDeck.logger.info(`LOOP DATA: ${this.data}`);
-
-							// ev.action.setTitle(`L: ${settings.enabled ? 'ON' : 'OFF'}`);
-							ev.action.setTitle(`L: ${this.data}`);
-						}, 1000));
-						settings.timer = uniqueId;
-					} catch (e) {
-						streamDeck.logger.error(`Error starting timer:`);
-						streamDeck.logger.error(e);
-					}
-				}
+				// }
 			}
 
+			streamDeck.logger.info("KD NO TIMER");
+			
+			if (settings.enabled) {
+				streamDeck.logger.info("KD TURN ON");
+
+				streamDeck.logger.info("KD START TIMER");
+
+				try {
+					const uniqueId = randomUUID();
+					this.timers.set(uniqueId,
+						setInterval(() => {
+						streamDeck.logger.info(`LOOP ENABLED: ${settings.enabled}`);
+						streamDeck.logger.info(`LOOP TIMER: ${settings.timer}`);
+						streamDeck.logger.info(`LOOP TYPE: ${this.type}`);
+						streamDeck.logger.info(`LOOP DATA: ${this.data}`);
+
+						// ev.action.setTitle(`L: ${settings.enabled ? 'ON' : 'OFF'}`);
+						ev.action.setTitle(`${this.data}`);
+					}, 1000));
+					settings.timer = uniqueId;
+				} catch (e) {
+					streamDeck.logger.error(`Error starting timer:`);
+					streamDeck.logger.error(e);
+				}
+			}
+			
+
 			await ev.action.setSettings(settings);
-			await ev.action.setTitle(`KD: ${settings.enabled ? 'ON' : 'OFF'}`);
+			await ev.action.setTitle(`KD2: ${settings.enabled ? 'ON' : 'OFF'}`);
 		} catch (e) {
 			streamDeck.logger.error(`Error in onKeyDown:`);
 			streamDeck.logger.error(e);
