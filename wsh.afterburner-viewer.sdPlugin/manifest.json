@@ -4,11 +4,11 @@
 	"Author": "com.github/wojciesh",
 	"Actions": [
 		{
-			"Name": "Counter",
-			"UUID": "wsh.afterburner-viewer.increment",
+			"Name": "Measurement",
+			"UUID": "wsh.afterburner-viewer.measurement",
 			"Icon": "imgs/actions/counter/icon",
-			"Tooltip": "Displays a count, which increments by one on press.",
-			"PropertyInspectorPath": "ui/increment-counter.html",
+			"Tooltip": "Displays a measurement from MSI Afterburner.",
+			"PropertyInspectorPath": "ui/measurement.html",
 			"Controllers": [
 				"Keypad"
 			],
