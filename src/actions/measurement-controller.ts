@@ -1,4 +1,4 @@
-import { streamDeck, action, KeyDownEvent, SingletonAction, WillAppearEvent, WillDisappearEvent } from "@elgato/streamdeck";
+import { streamDeck, action, KeyDownEvent, SingletonAction, WillAppearEvent, WillDisappearEvent, DidReceiveSettings } from "@elgato/streamdeck";
 import { randomUUID } from 'crypto';
 import { IpcClient } from "./IpcClient";
 
@@ -11,7 +11,8 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 	protected ipcClient: IpcClient | null = null;
 	protected isIpcInitialized: boolean = false;
 	
-	protected readonly timers = new Map<string, NodeJS.Timeout>();
+	protected readonly timers = new Map<string, NodeJS.Timeout>();	// <timerUID, timer>
+	protected readonly timerMeasurementTypes = new Map<string, string>();	// <timerUID, measurementType>
 	protected ipcTimer: NodeJS.Timeout | null = null;
 	
 	private get data(): string {
@@ -19,12 +20,6 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 	}
 	private set data(value: string) {
 		this.ext.data = value;
-	}
-	private get type(): string {
-		return this.ext.type || '';
-	}
-	private set type(value: string) {
-		this.ext.type = value;
 	}
 	private readonly ext: any = {};
 
@@ -66,6 +61,23 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 		}
 	}
 
+	override onDidReceiveSettings(ev: DidReceiveSettings<CounterSettings>): void | Promise<void> {
+		const { settings } = ev.payload;
+		
+		streamDeck.logger.info(`Settings received: ${JSON.stringify(settings)}`);
+
+		if (settings.measurementType 
+			&& settings.measurementType != '' 
+			&& settings.timer
+		) {
+			this.setMeasurementTypeForTimer(settings.timer, settings.measurementType);
+		}
+	}
+
+	private setMeasurementTypeForTimer(timerUID: string, measurementType: string) {
+		this.timerMeasurementTypes.set(timerUID, measurementType);
+	}
+
 	override onWillAppear(ev: WillAppearEvent<CounterSettings>): void | Promise<void> {
 		const { settings } = ev.payload;
 		if (!MeasurementController.isSettingsValid(settings)) {
@@ -78,32 +90,17 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 
 		this.ipcTimer = setInterval(() => {
 
-			if (this.isIpcServerRunning) { 
-				streamDeck.logger.info("IPC LOOP: server running");
-				
-				if (this.timers.size > 0) {
-					streamDeck.logger.info("IPC LOOP: timers size > 0: " + this.timers.size);
-
-					if (!this.isIpcConnected()) {
-						streamDeck.logger.info("IPC LOOP: not connected, will connect!");
-						this.ipcConnect();
-					} else {
-						streamDeck.logger.info("IPC LOOP: already connected, skipping connect");
-					}
-					return;
-
-				} else {
-					streamDeck.logger.info("IPC LOOP: no timers, disconnecting IPC");
+			if (this.isIpcServerRunning 
+				&& this.timers.size > 0
+			) {
+				if (!this.isIpcConnected()) {
+					this.ipcConnect();
 				}
 			} else {
-				streamDeck.logger.info("IPC LOOP: server not running, disconnecting IPC");
+				this.ipcClose();
 			}
 
-			this.ipcClose();
-
-			streamDeck.logger.info("IPC LOOP: IPC closed");
-
-		}, 500);
+		}, 250);
 
 		return ev.action.setTitle(`I: ${settings.enabled ? 'ON' : 'OFF'}`);
 	}
@@ -148,20 +145,27 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 
 	private createTimer(ev1: KeyDownEvent<CounterSettings>) : string {
 		const ev = ev1;
+		const { settings } = ev.payload;
+		const type = settings.type;
 		const uniqueId = randomUUID();
+
 		this.timers.set(uniqueId,
 			setInterval(() => {
 				if (this.data) {
-					// streamDeck.logger.info(`LOOP ENABLED: ${settings.enabled}`);
-					// streamDeck.logger.info(`LOOP TIMER: ${settings.timer}`);
-					// streamDeck.logger.info(`LOOP TYPE: ${this.type}`);
-					streamDeck.logger.info(`LOOP DATA: ${this.data}`);
+					const type : string = this.getTypeForTimer(uniqueId);
+					streamDeck.logger.info(`[LOOP] TYPE = ${type}`);
+					streamDeck.logger.info(`[LOOP] DATA = ${this.data}`);
 
 					// ev.action.setTitle(`L: ${settings.enabled ? 'ON' : 'OFF'}`);
-					ev.action.setTitle(`L:${this.data}`);
+					// ev.action.setTitle(`L:${this.data}`);
+					ev.action.setTitle(`L:${type}:${this.data}`);
 				}
 			}, 1000));
 		return uniqueId;
+	}
+	
+	protected getTypeForTimer(timerUID: string) : string {
+		return this.timerMeasurementTypes.get(timerUID) || '';
 	}
 
 	private killTimer(settings: CounterSettings) {
@@ -197,4 +201,5 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 type CounterSettings = {
 	enabled?: boolean;
 	timer?: any;
+	type?: string;
 };

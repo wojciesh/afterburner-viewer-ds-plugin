@@ -2,13 +2,13 @@
 	"Name": "afterburner-viewer",
 	"Version": "0.1.0.0",
 	"Author": "com.github/wojciesh",
+	"PropertyInspectorPath": "ui/measurement.html",
 	"Actions": [
 		{
 			"Name": "Measurement",
 			"UUID": "wsh.afterburner-viewer.measurement",
 			"Icon": "imgs/actions/counter/icon",
 			"Tooltip": "Displays a measurement from MSI Afterburner.",
-			"PropertyInspectorPath": "ui/measurement.html",
 			"Controllers": [
 				"Keypad"
 			],
