@@ -144,23 +144,37 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 	}
 
 	private createTimer(ev1: KeyDownEvent<CounterSettings>) : string {
-		const ev = ev1;
-		const { settings } = ev.payload;
-		const type = settings.measurementType;
+		const ev2 = ev1;
 		const uniqueId = randomUUID();
 
 		this.timers.set(uniqueId,
 			setInterval(() => {
+				const ev = ev2;
 				if (this.data) {
 					const type : string = this.getTypeForTimer(uniqueId);
 					streamDeck.logger.info(`[LOOP] TYPE = ${type}`);
 					streamDeck.logger.info(`[LOOP] DATA = ${this.data}`);
 
-					// ev.action.setTitle(`L: ${settings.enabled ? 'ON' : 'OFF'}`);
-					// ev.action.setTitle(`L:${this.data}`);
-					ev.action.setTitle(`L:${type}:${this.data}`);
+					const measurements = JSON.parse(this.data);
+					const measurement = measurements.find((m: any) => m.Type.Name === type);
+					if (measurement === undefined || measurement === null) {
+						streamDeck.logger.error(`Measurement not found for type: ${type}`);
+						return;
+					}
+					
+					let val = measurement.Value;
+					if (measurement.Type.Format) {
+						// Format to 3 decimal places
+						val = val.toFixed(3);
+					} else {
+						// Remove all decimals
+						val = Math.round(val);
+					}
+					
+
+					ev.action.setTitle(`${type}\n${val}\n${measurement.Type.Unit}`);
 				}
-			}, 1000));
+			}, 500));
 		return uniqueId;
 	}
 	
