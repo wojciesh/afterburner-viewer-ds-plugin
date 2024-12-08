@@ -1,4 +1,4 @@
-import { streamDeck, action, KeyDownEvent, SingletonAction, WillAppearEvent, WillDisappearEvent, DidReceiveSettings } from "@elgato/streamdeck";
+import { streamDeck, action, KeyDownEvent, SingletonAction, WillAppearEvent, WillDisappearEvent, DidReceiveSettingsEvent } from "@elgato/streamdeck";
 import { randomUUID } from 'crypto';
 import { IpcClient } from "./IpcClient";
 
@@ -61,7 +61,7 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 		}
 	}
 
-	override onDidReceiveSettings(ev: DidReceiveSettings<CounterSettings>): void | Promise<void> {
+	override onDidReceiveSettings(ev: DidReceiveSettingsEvent<CounterSettings>): void | Promise<void> {
 		const { settings } = ev.payload;
 		
 		streamDeck.logger.info(`Settings received: ${JSON.stringify(settings)}`);
@@ -146,7 +146,7 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 	private createTimer(ev1: KeyDownEvent<CounterSettings>) : string {
 		const ev = ev1;
 		const { settings } = ev.payload;
-		const type = settings.type;
+		const type = settings.measurementType;
 		const uniqueId = randomUUID();
 
 		this.timers.set(uniqueId,
@@ -201,5 +201,5 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 type CounterSettings = {
 	enabled?: boolean;
 	timer?: any;
-	type?: string;
+	measurementType?: string;
 };
