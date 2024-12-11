@@ -1,7 +1,47 @@
-import { streamDeck, action, KeyDownEvent, SingletonAction, WillAppearEvent, WillDisappearEvent, DidReceiveSettingsEvent } from "@elgato/streamdeck";
-import { randomUUID } from 'crypto';
-import { IpcClient } from "./IpcClient";
+import {
+	action,
+	DidReceiveSettingsEvent,
+	KeyDownEvent,
+	SingletonAction,
+	streamDeck,
+	WillAppearEvent,
+	WillDisappearEvent
+} from "@elgato/streamdeck";
+import {randomUUID} from 'crypto';
+import {IpcClient} from "./IpcClient";
 
+
+/*
+    public record MeasurementType
+    {
+        public required string Name { get; init; }
+        public required string Unit { get; init; }
+        public required double Min { get; init; }
+        public required double Max { get; init; }
+        public required int Base { get; init; }
+        public required string? Format { get; init; }
+    }
+
+    public record AfterburnerMeasurement
+    {
+        public required MeasurementType Type { get; init; }
+        public required double Value { get; init; }
+    }
+* */
+
+class MeasurementType {
+	public Name: string = '';
+	public Unit: string = '';
+	public Min: number = 0;
+	public Max: number = 0;
+	public Base: number = 0;
+	public Format: string | null = null;
+}
+
+class AfterburnerMeasurement {
+	public Type: MeasurementType = new MeasurementType();
+	public Value: number = 0;
+}
 
 @action({ UUID: "wsh.afterburner-viewer.measurement" })
 export class MeasurementController extends SingletonAction<CounterSettings> {
@@ -144,40 +184,127 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 	}
 
 	private createTimer(ev1: KeyDownEvent<CounterSettings>) : string {
-		const ev2 = ev1;
+		const ev = ev1;
 		const uniqueId = randomUUID();
 
 		this.timers.set(uniqueId,
-			setInterval(() => {
-				const ev = ev2;
+			setInterval(async () => {
 				if (this.data) {
 					const type : string = this.getTypeForTimer(uniqueId);
 					streamDeck.logger.info(`[LOOP] TYPE = ${type}`);
 					streamDeck.logger.info(`[LOOP] DATA = ${this.data}`);
 
-					const measurements = JSON.parse(this.data);
+					const measurements = JSON.parse(this.data) as AfterburnerMeasurement[];
+
 					const measurement = measurements.find((m: any) => m.Type.Name === type);
 					if (measurement === undefined || measurement === null) {
 						streamDeck.logger.error(`Measurement not found for type: ${type}`);
 						return;
 					}
-					
-					let val = measurement.Value;
-					if (measurement.Type.Format) {
-						// Format to 3 decimal places
-						val = val.toFixed(3);
-					} else {
-						// Remove all decimals
-						val = Math.round(val);
-					}
-					
 
-					ev.action.setTitle(`${type}\n${val}\n${measurement.Type.Unit}`);
+					const valStr : string = (measurement.Type.Format)
+						? measurement.Value.toFixed(3)
+						: Math.round(measurement.Value).toFixed();
+
+					// await ev.action.setTitle(`${type}\n${valStr}\n${measurement.Type.Unit}`);
+					await ev.action.setTitle(``);
+
+					const colors: { bg: string; text: string; textBorder: string } = this.getLevelAsColors(measurement);
+					const svg = `<svg width="100" height="100">
+						<circle fill="${colors.bg}" r="45" cx="50" cy="50" ></circle>
+						<text x="50" y="30"
+							text-anchor="middle"
+							font-size="10" 
+							fill="${colors.text}"
+							stroke="${colors.textBorder}" stroke-width="3"
+						>
+							${type}
+						</text>
+						<text x="50" y="60"
+							text-anchor="middle"
+							font-size="18" 
+							fill="${colors.text}"
+							stroke="${colors.textBorder}" stroke-width="5"
+						>
+							${valStr} ${measurement.Type.Unit}
+						</text>
+					</svg>`;
+					await ev.action.setImage(`data:image/svg+xml,${encodeURIComponent(svg)}`);
 				}
 			}, 500));
 		return uniqueId;
 	}
-	
+
+	private getLevelAsColors(measurement: AfterburnerMeasurement) {
+		const level = getLevel();
+
+		if (level > 0.9) {
+			return {
+				bg: '#FF0000',
+				text: '#000000',
+				textBorder: '#000000'
+			};
+		} else if (level > 0.8) {
+			return {
+				bg: '#FF4500',
+				text: '#000000',
+				textBorder: '#000000'
+			};
+		} else if (level > 0.7) {
+			return {
+				bg: '#FFA500',
+				text: '#001B55',
+				textBorder: '#000000'
+			}
+		} else if (level > 0.6) {
+			return {
+				bg: '#FFD700',
+				text: '#001b55',
+				textBorder: '#000000'
+			}
+		} else if (level > 0.5) {
+			return {
+				bg: '#FFFF00',
+				text: '#001b55',
+				textBorder: '#000000'
+			}
+		} else if (level > 0.4) {
+			return {
+				bg: '#ADFF2F',
+				text: '#000000',
+				textBorder: '#ffffff'
+			}
+		} else if (level > 0.3) {
+			return {
+				bg: '#32CD32',
+				text: '#ffd800',
+				textBorder: '#ffffff'
+			}
+		} else if (level > 0.2) {
+			return {
+				bg: '#008000',
+				text: '#ffd800',
+				textBorder: '#ffffff'
+			}
+		} else if (level > 0.1) {
+			return {
+				bg: '#006400',
+				text: '#ffd800',
+				textBorder: '#ffffff'
+			}
+		} else {
+			return {
+				bg: '#004200',
+				text: '#ffd800',
+				textBorder: '#ffffff'
+			}
+		}
+
+		function getLevel() {
+			return (measurement.Value - measurement.Type.Min) / (measurement.Type.Max - measurement.Type.Min);
+		}
+	}
+
 	protected getTypeForTimer(timerUID: string) : string {
 		return this.timerMeasurementTypes.get(timerUID) || '';
 	}
