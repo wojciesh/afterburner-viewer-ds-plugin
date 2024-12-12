@@ -209,35 +209,48 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 					// await ev.action.setTitle(`${type}\n${valStr}\n${measurement.Type.Unit}`);
 					await ev.action.setTitle(``);
 
-					const colors: { bg: string; text: string; textBorder: string } = this.getLevelAsColors(measurement);
+					let level = this.getLevel(measurement);
+					const colors: { bg: string; text: string; textBorder: string } = this.levelToColors(level);
+					const bar = {
+						x: 30,
+						y: 45,
+						w: 0,
+						h: 0,
+					}
+					bar.w = 100 - (bar.x * 2);
+					bar.h = 100 - bar.y;
 					const svg = `<svg width="100" height="100">
-						<circle fill="${colors.bg}" r="45" cx="50" cy="50" ></circle>
-						<text x="50" y="30"
-							text-anchor="middle"
-							font-size="10" 
-							fill="${colors.text}"
-							stroke="${colors.textBorder}" stroke-width="3"
-						>
-							${type}
-						</text>
-						<text x="50" y="60"
-							text-anchor="middle"
-							font-size="18" 
-							fill="${colors.text}"
-							stroke="${colors.textBorder}" stroke-width="5"
-						>
-							${valStr} ${measurement.Type.Unit}
-						</text>
-					</svg>`;
+    <defs>
+        <linearGradient id="gradient" x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="5%" stop-color="green" />
+            <stop offset="50%" stop-color="orange" />
+      		<stop offset="95%" stop-color="red" />
+        </linearGradient>
+    </defs>
+    <rect x="${bar.x}" y="${bar.y}" width="${bar.w}" height="${bar.h}"  fill="url(#gradient)" stroke="white" stroke-width="1" />
+    <rect x="${bar.x}" y="${bar.y}" width="${bar.w}" height="${bar.h - (level * bar.h)}" fill="black" />
+    <text x="50" y="15"
+        text-anchor="middle"
+        font-size="10" 
+        fill="white"
+    >
+        ${type}
+    </text>
+    <text x="50" y="35"
+        text-anchor="middle"
+        font-size="19" 
+        fill="white"
+    >
+        ${valStr} ${measurement.Type.Unit}
+    </text>
+</svg>`;
 					await ev.action.setImage(`data:image/svg+xml,${encodeURIComponent(svg)}`);
 				}
 			}, 500));
 		return uniqueId;
 	}
 
-	private getLevelAsColors(measurement: AfterburnerMeasurement) {
-		const level = getLevel();
-
+	private levelToColors(level: number) {
 		if (level > 0.9) {
 			return {
 				bg: '#FF0000',
@@ -300,9 +313,11 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 			}
 		}
 
-		function getLevel() {
-			return (measurement.Value - measurement.Type.Min) / (measurement.Type.Max - measurement.Type.Min);
-		}
+
+	}
+
+	protected getLevel(measurement: AfterburnerMeasurement) : number {
+		return (measurement.Value - measurement.Type.Min) / (measurement.Type.Max - measurement.Type.Min);
 	}
 
 	protected getTypeForTimer(timerUID: string) : string {
