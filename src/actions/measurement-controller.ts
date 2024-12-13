@@ -9,6 +9,7 @@ import {
 } from "@elgato/streamdeck";
 import {randomUUID} from 'crypto';
 import {IpcClient} from "./IpcClient";
+import type {ActionEvent} from "@elgato/streamdeck/types/common/events";
 
 
 /*
@@ -156,26 +157,13 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 			const { settings } = ev.payload;
 			if (!MeasurementController.isSettingsValid(settings)) {
 				MeasurementController.initializeSettings(settings);
-				ev.action.setSettings(settings);
 			}
 
 			settings.enabled = !settings.enabled;
 
-			this.killTimer(settings);
-
-			if (settings.enabled) {
-				streamDeck.logger.debug("KD STARTING TIMER");
-
-				try {
-					settings.timer = this.createTimer(ev);
-				} catch (e) {
-					streamDeck.logger.error(`Error starting timer:`);
-					streamDeck.logger.error(e);
-				}
-			}
+			this.restartMeasurementTimer(settings, ev);
 
 			await ev.action.setSettings(settings);
-			await ev.action.setTitle(`KD: ${settings.enabled ? 'ON' : 'OFF'}`);
 
 		} catch (e) {
 			streamDeck.logger.error(`Error in onKeyDown:`);
@@ -183,19 +171,32 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 		}
 	}
 
-	private createTimer(ev1: KeyDownEvent<CounterSettings>) : string {
+	private restartMeasurementTimer(settings: CounterSettings, ev: ActionEvent<CounterSettings>) {
+		this.killTimer(settings);
+
+		if (settings.enabled) {
+			streamDeck.logger.debug("KD STARTING TIMER");
+
+			try {
+				settings.timer = this.createTimer(ev);
+			} catch (e) {
+				streamDeck.logger.error(`Error starting timer:`);
+				streamDeck.logger.error(e);
+			}
+		}
+	}
+
+	private createTimer(ev1: ActionEvent<CounterSettings>) : string {
 		const ev = ev1;
 		const uniqueId = randomUUID();
 
 		this.timers.set(uniqueId,
 			setInterval(async () => {
 				if (this.data) {
+					await ev.action.setTitle(``);
+
 					const type : string = this.getTypeForTimer(uniqueId);
-					streamDeck.logger.info(`[LOOP] TYPE = ${type}`);
-					streamDeck.logger.info(`[LOOP] DATA = ${this.data}`);
-
 					const measurements = JSON.parse(this.data) as AfterburnerMeasurement[];
-
 					const measurement = measurements.find((m: any) => m.Type.Name === type);
 					if (measurement === undefined || measurement === null) {
 						streamDeck.logger.error(`Measurement not found for type: ${type}`);
