@@ -219,30 +219,70 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 					}
 					bar.w = 100 - (bar.x * 2);
 					bar.h = 100 - bar.y;
+					const strokeWidth = 0.618;
 					const svg = `<svg width="100" height="100">
-    <defs>
-        <linearGradient id="gradient" x1="0%" y1="100%" x2="0%" y2="0%">
-            <stop offset="5%" stop-color="green" />
-            <stop offset="50%" stop-color="orange" />
-      		<stop offset="95%" stop-color="red" />
-        </linearGradient>
-    </defs>
-    <rect x="${bar.x}" y="${bar.y}" width="${bar.w}" height="${bar.h}"  fill="url(#gradient)" stroke="white" stroke-width="1" />
-    <rect x="${bar.x}" y="${bar.y}" width="${bar.w}" height="${bar.h - (level * bar.h)}" fill="black" />
-    <text x="50" y="15"
-        text-anchor="middle"
-        font-size="10" 
-        fill="white"
-    >
-        ${type}
-    </text>
-    <text x="50" y="35"
-        text-anchor="middle"
-        font-size="19" 
-        fill="white"
-    >
-        ${valStr} ${measurement.Type.Unit}
-    </text>
+	<defs>
+		<linearGradient id="gradient" x1="0%" y1="100%" x2="0%" y2="0%">
+			<stop offset="34%" stop-color="green" />
+			<stop offset="61.8%" stop-color="orange" />
+			<stop offset="100%" stop-color="darkred" />
+		</linearGradient>
+		
+		<mask id="border-bg">
+			<!-- Fill everything -->
+			<rect x="0" y="0" width="100%" height="100%" fill="white" />
+			<!-- Cut out the rect for border -->
+			<rect x="${bar.x}" y="${bar.y}" width="${bar.w}" height="${bar.h}" fill="black" />
+		</mask>
+	</defs>
+	
+	<!-- Clear all -->
+	<rect x="0" y="0" width="100%" height="100%" fill="black" />
+	
+	<!-- BORDER - outer stroke -->
+	<rect fill="none" stroke="lightgray" 
+		mask="url(#border-bg)"
+		stroke-width="${strokeWidth}" 
+		x="${bar.x - strokeWidth / 2}"
+		y="${bar.y - strokeWidth / 2}" 
+		width="${bar.w + strokeWidth}" 
+		height="${bar.h + strokeWidth}" 
+	/>
+	<!-- BAR - fill 100% -->
+	<rect 
+		fill="url(#gradient)"
+		x="${bar.x}" 
+		y="${bar.y}"
+		width="${bar.w}" 
+		height="${bar.h}"
+	/>
+	<!-- BAR - cutout remaining -->	
+	<rect 
+		fill="black" 
+		x="${bar.x}" 
+		y="${bar.y}" 
+		width="${bar.w}" 
+		height="${bar.h - (level * bar.h)}" 
+	/>
+	
+	<!-- TYPE -->
+	<text x="50" y="15"
+		text-anchor="middle"
+		font-size="10" 
+		fill="lightgray"
+	>
+		${type}
+	</text>
+	
+	<!-- VALUE and UNIT -->
+	<text x="56" y="35"
+		text-anchor="middle"
+		font-size="19" 
+		fill="white"
+		font-weight="bold"
+	>
+		${valStr}<tspan font-size="8" font-weight="lighter" fill="lightgray" alignment-baseline="middle">${measurement.Type.Unit}</tspan>
+	</text>
 </svg>`;
 					await ev.action.setImage(`data:image/svg+xml,${encodeURIComponent(svg)}`);
 				}
