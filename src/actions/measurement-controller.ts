@@ -119,19 +119,32 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 		this.timerMeasurementTypes.set(timerUID, measurementType);
 	}
 
+	private getMeasurementTypeForTimer(timerUID: string) : string {
+		return this.timerMeasurementTypes.get(timerUID) || MeasurementController.allMeasurementTypes[0];
+	}
+
 	override onWillAppear(ev: WillAppearEvent<CounterSettings>): void | Promise<void> {
 		const { settings } = ev.payload;
 		if (!MeasurementController.isSettingsValid(settings)) {
 			MeasurementController.initializeSettings(settings);
-			ev.action.setSettings(settings);
 		}
 
-		if (this.ipcTimer) 
+		this.restartIpcTimer();
+
+		settings.enabled = true;
+
+		this.restartMeasurementTimer(settings, ev);
+
+		return ev.action.setSettings(settings);
+	}
+
+	private restartIpcTimer() {
+		if (this.ipcTimer)
 			clearInterval(this.ipcTimer);
 
 		this.ipcTimer = setInterval(() => {
 
-			if (this.isIpcServerRunning 
+			if (this.isIpcServerRunning
 				&& this.timers.size > 0
 			) {
 				if (!this.isIpcConnected()) {
@@ -142,8 +155,6 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 			}
 
 		}, 250);
-
-		return ev.action.setTitle(`I: ${settings.enabled ? 'ON' : 'OFF'}`);
 	}
 
 	override onWillDisappear(ev: WillDisappearEvent<CounterSettings>): void | Promise<void> {
@@ -159,8 +170,6 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 				MeasurementController.initializeSettings(settings);
 			}
 
-			settings.enabled = !settings.enabled;
-
 			this.restartMeasurementTimer(settings, ev);
 
 			await ev.action.setSettings(settings);
@@ -171,7 +180,32 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 		}
 	}
 
+	private setNextMeasurementForTimer(settings: CounterSettings) {
+		const idx = MeasurementController.allMeasurementTypes.indexOf(settings.measurementType);
+		settings.measurementType = MeasurementController.allMeasurementTypes[(idx + 1) % MeasurementController.allMeasurementTypes.length];
+		this.setMeasurementTypeForTimer(settings.timer, settings.measurementType);
+	}
+
+	public static allMeasurementTypes = [
+		'Power',
+		'CPU usage',
+		'CPU clock',
+		'CPU power',
+		'Core clock',
+		'RAM usage',
+		'Memory usage',
+		'Memory clock',
+		'Commit charge',
+		'GPU temperature',
+		'GPU usage',
+		'Fan speed',
+		'Fan tachometer',
+		'FB usage',
+	];
+
 	private restartMeasurementTimer(settings: CounterSettings, ev: ActionEvent<CounterSettings>) {
+		settings.measurementType = this.getMeasurementTypeForTimer(settings.timer);
+
 		this.killTimer(settings);
 
 		if (settings.enabled) {
@@ -179,6 +213,8 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 
 			try {
 				settings.timer = this.createTimer(ev);
+				this.setMeasurementTypeForTimer(settings.timer, settings.measurementType);
+
 			} catch (e) {
 				streamDeck.logger.error(`Error starting timer:`);
 				streamDeck.logger.error(e);
@@ -326,6 +362,7 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 	protected static initializeSettings(settings: CounterSettings) {
 		settings.enabled = false;
 		settings.timer = null;
+		settings.measurementType = MeasurementController.allMeasurementTypes[0];
 	}
 
 	protected static isSettingsValid(settings: CounterSettings) {
@@ -340,5 +377,5 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 type CounterSettings = {
 	enabled?: boolean;
 	timer?: any;
-	measurementType?: string;
+	measurementType: string;
 };
