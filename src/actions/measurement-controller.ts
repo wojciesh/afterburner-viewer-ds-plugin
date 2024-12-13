@@ -9,7 +9,6 @@ import {
 } from "@elgato/streamdeck";
 import {randomUUID} from 'crypto';
 import {IpcClient} from "./IpcClient";
-import type {ActionEvent} from "@elgato/streamdeck/types/common/events";
 
 
 /*
@@ -170,6 +169,8 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 				MeasurementController.initializeSettings(settings);
 			}
 
+			this.setNextMeasurementForTimer(settings);
+
 			this.restartMeasurementTimer(settings, ev);
 
 			await ev.action.setSettings(settings);
@@ -203,7 +204,7 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 		'FB usage',
 	];
 
-	private restartMeasurementTimer(settings: CounterSettings, ev: ActionEvent<CounterSettings>) {
+	private restartMeasurementTimer(settings: CounterSettings, ev: any) {
 		settings.measurementType = this.getMeasurementTypeForTimer(settings.timer);
 
 		this.killTimer(settings);
@@ -222,7 +223,7 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 		}
 	}
 
-	private createTimer(ev1: ActionEvent<CounterSettings>) : string {
+	private createTimer(ev1: any) : string {
 		const ev = ev1;
 		const uniqueId = randomUUID();
 
