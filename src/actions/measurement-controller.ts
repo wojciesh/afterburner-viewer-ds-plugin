@@ -209,8 +209,8 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 					// await ev.action.setTitle(`${type}\n${valStr}\n${measurement.Type.Unit}`);
 					await ev.action.setTitle(``);
 
-					let level = this.getLevel(measurement);
-					const colors: { bg: string; text: string; textBorder: string } = this.levelToColors(level);
+					const level = this.getLevel(measurement);
+					const glowStrength = 10 * level;
 					const bar = {
 						x: 30,
 						y: 45,
@@ -288,72 +288,6 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 				}
 			}, 500));
 		return uniqueId;
-	}
-
-	private levelToColors(level: number) {
-		if (level > 0.9) {
-			return {
-				bg: '#FF0000',
-				text: '#000000',
-				textBorder: '#000000'
-			};
-		} else if (level > 0.8) {
-			return {
-				bg: '#FF4500',
-				text: '#000000',
-				textBorder: '#000000'
-			};
-		} else if (level > 0.7) {
-			return {
-				bg: '#FFA500',
-				text: '#001B55',
-				textBorder: '#000000'
-			}
-		} else if (level > 0.6) {
-			return {
-				bg: '#FFD700',
-				text: '#001b55',
-				textBorder: '#000000'
-			}
-		} else if (level > 0.5) {
-			return {
-				bg: '#FFFF00',
-				text: '#001b55',
-				textBorder: '#000000'
-			}
-		} else if (level > 0.4) {
-			return {
-				bg: '#ADFF2F',
-				text: '#000000',
-				textBorder: '#ffffff'
-			}
-		} else if (level > 0.3) {
-			return {
-				bg: '#32CD32',
-				text: '#ffd800',
-				textBorder: '#ffffff'
-			}
-		} else if (level > 0.2) {
-			return {
-				bg: '#008000',
-				text: '#ffd800',
-				textBorder: '#ffffff'
-			}
-		} else if (level > 0.1) {
-			return {
-				bg: '#006400',
-				text: '#ffd800',
-				textBorder: '#ffffff'
-			}
-		} else {
-			return {
-				bg: '#004200',
-				text: '#ffd800',
-				textBorder: '#ffffff'
-			}
-		}
-
-
 	}
 
 	protected getLevel(measurement: AfterburnerMeasurement) : number {
