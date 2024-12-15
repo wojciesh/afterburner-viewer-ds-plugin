@@ -15,6 +15,8 @@ import {IpcClient} from "./IpcClient";
 import { AfterburnerMeasurement } from "../models/AfterburnerMeasurement";
 import { MeasurementSettings } from "../models/MeasurementSettings";
 import {SvgRenderer} from "../helpers/SvgRenderer";
+import {ILogger} from "../helpers/logger/ILogger";
+import {StreamDeckLogger} from "../helpers/logger/StreamDeckLogger";
 
 @action({ UUID: "wsh.afterburner-viewer.measurement" })
 export class MeasurementController extends SingletonAction<MeasurementSettings> {
@@ -38,14 +40,18 @@ export class MeasurementController extends SingletonAction<MeasurementSettings> 
 
 	private isIpcServerRunning: boolean = false;
 
+
+	public logger: ILogger = new StreamDeckLogger();
+
+
 	constructor() {
 		super();
 		streamDeck.system.onApplicationDidLaunch((ev: ApplicationDidLaunchEvent) => {
-			streamDeck.logger.info(`Launched: ${ev.application}`);
+			this.logger.info(`Launched: ${ev.application}`);
 			this.isIpcServerRunning = true;
 		});
 		streamDeck.system.onApplicationDidTerminate((ev: ApplicationDidTerminateEvent) => {
-			streamDeck.logger.info(`Terminated: ${ev.application}`);
+			this.logger.info(`Terminated: ${ev.application}`);
 			this.isIpcServerRunning = false;
 		});
 	}
@@ -60,16 +66,16 @@ export class MeasurementController extends SingletonAction<MeasurementSettings> 
 			this.ipcClient = new IpcClient();
 
 			this.ipcClient.onDataReceived.subscribe((data) => {
-				streamDeck.logger.info(`Data received: ${data}`);
+				this.logger.info(`Data received: ${data}`);
 				this.data = data.toString();
 			});
 			
 			this.ipcClient.onConnectionOpened.subscribe(() => {
-				streamDeck.logger.info("Connection opened!");
+				this.logger.info("Connection opened!");
 			});
 			
 			this.ipcClient.onConnectionClosed.subscribe(() => {
-				streamDeck.logger.info("Connection closed!");
+				this.logger.info("Connection closed!");
 			});
 
 			this.isIpcInitialized = true;
@@ -89,7 +95,7 @@ export class MeasurementController extends SingletonAction<MeasurementSettings> 
 	override onDidReceiveSettings(ev: DidReceiveSettingsEvent<MeasurementSettings>): void | Promise<void> {
 		const { settings } = ev.payload;
 		
-		streamDeck.logger.info(`Settings received: ${JSON.stringify(settings)}`);
+		this.logger.info(`Settings received: ${JSON.stringify(settings)}`);
 
 		if (settings.measurementType 
 			&& settings.measurementType != '' 
@@ -161,8 +167,7 @@ export class MeasurementController extends SingletonAction<MeasurementSettings> 
 			await ev.action.setSettings(settings);
 
 		} catch (e) {
-			streamDeck.logger.error(`Error in onKeyDown:`);
-			streamDeck.logger.error(e);
+			this.logger.error(`Error in onKeyDown: ${e}`);
 		}
 	}
 
@@ -199,15 +204,14 @@ export class MeasurementController extends SingletonAction<MeasurementSettings> 
 		this.killTimer(settings);
 
 		if (settings.enabled) {
-			streamDeck.logger.debug("KD STARTING TIMER");
+			this.logger.debug("KD STARTING TIMER");
 
 			try {
 				settings.timer = this.createTimer(ev);
 				this.setMeasurementTypeForTimer(settings.timer, settings.measurementType);
 
 			} catch (e) {
-				streamDeck.logger.error(`Error starting timer:`);
-				streamDeck.logger.error(e);
+				this.logger.error(`Error starting timer: ${e}`);
 			}
 		}
 	}
@@ -225,7 +229,7 @@ export class MeasurementController extends SingletonAction<MeasurementSettings> 
 					const measurements = JSON.parse(this.data) as AfterburnerMeasurement[];
 					const measurement = measurements.find((m: any) => m.Type.Name === type);
 					if (measurement === undefined || measurement === null) {
-						streamDeck.logger.error(`Measurement not found for type: ${type}`);
+						this.logger.error(`Measurement not found for type: ${type}`);
 						return;
 					}
 
@@ -242,16 +246,16 @@ export class MeasurementController extends SingletonAction<MeasurementSettings> 
 
 	private killTimer(settings: MeasurementSettings) {
 		if (typeof settings.timer !== 'undefined' && settings.timer !== null) {
-			streamDeck.logger.debug("KILLING TIMER: " + settings.timer);
+			this.logger.debug("KILLING TIMER: " + settings.timer);
 
 			if (this.timers.has(settings.timer)) {
 				const timer = this.timers.get(settings.timer);
 				clearInterval(timer);
 				this.timers.delete(settings.timer);
 				settings.timer = null;
-				streamDeck.logger.debug("OK, TIMER CLEARED");
+				this.logger.debug("OK, TIMER CLEARED");
 			} else {
-				streamDeck.logger.error("TIMER NOT FOUND IN MAP");
+				this.logger.error("TIMER NOT FOUND IN MAP");
 			}
 		}
 	}
