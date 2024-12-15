@@ -36,16 +36,13 @@ export class MeasurementController extends SingletonAction<MeasurementSettings> 
 		super();
 
 		this.timerManager = new MeasurementTimerManager(
-			this.logger,
-			() => this.data,
+			logger,
 			measurementTypesProvider
 		);
 
 		this.ipcService = new IpcService(ipcFactory, this.timerManager);
-		this.ipcService.onDataReceived.subscribe((data) => {
-			this.logger.info(`Data received: ${data}`);
-			this.data = data;
-		});
+
+		this.timerManager.init(this.ipcService);
 	}
 
 	override onDidReceiveSettings(ev: DidReceiveSettingsEvent<MeasurementSettings>): void | Promise<void> {

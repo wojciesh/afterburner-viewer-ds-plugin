@@ -4,28 +4,32 @@ import { SvgRenderer } from "../helpers/SvgRenderer";
 import { AfterburnerMeasurement } from "../models/AfterburnerMeasurement";
 import { MeasurementSettings } from "../models/MeasurementSettings";
 import { IMeasurementTypesProvider } from "../providers/measurement-types/IMeasurementTypesProvider";
+import { IpcService } from "./IpcService";
 
 export class MeasurementTimerManager implements IActivityChecker {
 
     private readonly timers = new Map<string, NodeJS.Timeout>(); // <timerUID, timer>
     private readonly timerMeasurementTypes = new Map<string, string>(); // <timerUID, measurementType>
 
+    private data: string = '';
+
     constructor(private readonly logger: ILogger,
-                private readonly getData: () => string,
                 private readonly measurementTypesProvider: IMeasurementTypesProvider
     ) {}
 
-    createTimer(
-        action: any,
-        measurementType: string,
-        updateInterval: number = 500
-    ): string {
+    init(ipcService: IpcService): void {
+        ipcService.onDataReceived.subscribe((data) => {
+            this.data = data;
+        });
+    }
+
+    createTimer(action: any, measurementType: string, updateInterval: number = 500): string {
         const uniqueId = randomUUID();
 
         this.timers.set(
             uniqueId,
             setInterval(async () => {
-                const data = this.getData();
+                const data = this.data;
                 if (data) {
                     await action.setTitle(``);
 
