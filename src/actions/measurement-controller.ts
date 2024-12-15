@@ -5,29 +5,12 @@ import {
 	SingletonAction,
 	streamDeck,
 	WillAppearEvent,
-	WillDisappearEvent
+	WillDisappearEvent,
+	ApplicationDidLaunchEvent,
+	ApplicationDidTerminateEvent
 } from "@elgato/streamdeck";
 import {randomUUID} from 'crypto';
 import {IpcClient} from "./IpcClient";
-
-
-/*
-    public record MeasurementType
-    {
-        public required string Name { get; init; }
-        public required string Unit { get; init; }
-        public required double Min { get; init; }
-        public required double Max { get; init; }
-        public required int Base { get; init; }
-        public required string? Format { get; init; }
-    }
-
-    public record AfterburnerMeasurement
-    {
-        public required MeasurementType Type { get; init; }
-        public required double Value { get; init; }
-    }
-* */
 
 class MeasurementType {
 	public Name: string = '';
@@ -63,8 +46,20 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 	}
 	private readonly ext: any = {};
 
-	public isIpcServerRunning: boolean = false;
-	
+	private isIpcServerRunning: boolean = false;
+
+	constructor() {
+		super();
+		streamDeck.system.onApplicationDidLaunch((ev: ApplicationDidLaunchEvent) => {
+			streamDeck.logger.info(`Launched: ${ev.application}`);
+			this.isIpcServerRunning = true;
+		});
+		streamDeck.system.onApplicationDidTerminate((ev: ApplicationDidTerminateEvent) => {
+			streamDeck.logger.info(`Terminated: ${ev.application}`);
+			this.isIpcServerRunning = false;
+		});
+	}
+
 	protected isIpcConnected() : boolean {
 		return this.ipcClient?.isConnected() ?? false;
 	}
@@ -372,9 +367,6 @@ export class MeasurementController extends SingletonAction<CounterSettings> {
 
 }
 
-/**
- * Settings for {@link MeasurementController}.
- */
 type CounterSettings = {
 	enabled?: boolean;
 	timer?: any;
