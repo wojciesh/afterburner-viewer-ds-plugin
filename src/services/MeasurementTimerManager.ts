@@ -6,9 +6,17 @@ import { MeasurementSettings } from "../models/MeasurementSettings";
 import { IMeasurementTypesProvider } from "../providers/measurement-types/IMeasurementTypesProvider";
 import { IpcService } from "./IpcService";
 
-export class MeasurementTimerManager implements IActivityChecker {
+export interface IMeasurementsManager {
+    set data(value: string);
+    restartMeasurementTimer(settings: MeasurementSettings, ev: any): void;
+    setMeasurementTypeForTimer(timerUID: string, measurementType: string): void;
+    setNextMeasurementForTimer(settings: MeasurementSettings): void;
+    killTimer(timerUID: string | null | undefined): void;
+}
 
-    private readonly timers = new Map<string, NodeJS.Timeout>(); // <timerUID, timer>
+export class MeasurementTimerManager implements IMeasurementsManager, IActivityChecker {
+
+    private readonly timers = new Map<string, (data: string) => void | Promise<void>>();  // <timerUID, function>
     private readonly timerMeasurementTypes = new Map<string, string>(); // <timerUID, measurementType>
 
     private _data: string = '';
@@ -17,48 +25,40 @@ export class MeasurementTimerManager implements IActivityChecker {
     }
     set data(value: string) {
         this._data = value;
+
+        this.timers.forEach(async (timerFunc, timerUID) => {
+            await timerFunc(value);
+        });
     }
 
     constructor(private readonly measurementTypesProvider: IMeasurementTypesProvider,
                 private readonly logger: ILogger
     ) {}
 
-    createTimer(action: any, measurementType: string, updateInterval: number = 500): string {
-        const uniqueId = randomUUID();
-
+    private createTimer(action: any, measurementType: string): string {
+        const uniqueId: string = randomUUID();
+        this.setMeasurementTypeForTimer(uniqueId, measurementType);
         this.timers.set(
             uniqueId,
-            setInterval(async () => {
-                const data = this.data;
-                if (data) {
-                    await action.setTitle(``);
-
-                    const type: string = this.getMeasurementTypeForTimer(uniqueId);
-                    const measurements = JSON.parse(data) as AfterburnerMeasurement[];
-                    const measurement = measurements.find((m: any) => m.Type.Name === type);
-
-                    if (!measurement) {
-                        this.logger.error(`Measurement not found for type: ${type}`);
-                        return;
-                    }
-
-                    await action.setImage(
-                        `data:image/svg+xml,${encodeURIComponent(SvgRenderer.render(measurement))}`
-                    );
+            async (aData: string) => {
+                if (!aData) return;
+                await action.setTitle(``);
+                const type: string = this.getMeasurementTypeForTimer(uniqueId);
+                const measurements = JSON.parse(aData) as AfterburnerMeasurement[];
+                const measurement = measurements.find((m: any) => m.Type.Name === type);
+                if (!measurement) {
+                    this.logger.error(`Measurement not found for type: ${type}`);
+                    return;
                 }
-            }, updateInterval)
-        );
-
-        this.setMeasurementTypeForTimer(uniqueId, measurementType);
+                await action.setImage(
+                    `data:image/svg+xml,${encodeURIComponent(SvgRenderer.render(measurement))}`
+                );
+            });
         return uniqueId;
     }
 
     killTimer(timerUID: string | null | undefined): void {
-        if (!timerUID) return;
-
-        if (this.timers.has(timerUID)) {
-            const timer = this.timers.get(timerUID);
-            clearInterval(timer);
+        if (timerUID && this.timers.has(timerUID)) {
             this.timers.delete(timerUID);
             this.logger.debug(`Timer cleared: ${timerUID}`);
         } else {
@@ -70,7 +70,7 @@ export class MeasurementTimerManager implements IActivityChecker {
         this.timerMeasurementTypes.set(timerUID, measurementType);
     }
 
-    getMeasurementTypeForTimer(timerUID: string): string {
+    private getMeasurementTypeForTimer(timerUID: string): string {
         return this.timerMeasurementTypes.get(timerUID) || '';
     }
 
