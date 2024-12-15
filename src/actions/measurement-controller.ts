@@ -10,25 +10,22 @@ import {
 	ApplicationDidTerminateEvent
 } from "@elgato/streamdeck";
 import {randomUUID} from 'crypto';
-import {IpcClient} from "../services/IpcClient";
 
 import { AfterburnerMeasurement } from "../models/AfterburnerMeasurement";
 import { MeasurementSettings } from "../models/MeasurementSettings";
 import {SvgRenderer} from "../helpers/SvgRenderer";
 import {ILogger} from "../helpers/logger/ILogger";
 import {StreamDeckLogger} from "../helpers/logger/StreamDeckLogger";
+import {IpcService} from "../services/IpcService";
 
 @action({ UUID: "wsh.afterburner-viewer.measurement" })
 export class MeasurementController extends SingletonAction<MeasurementSettings> {
 	
-	protected readonly IPC_PIPE_NAME = 'ab2sd-1';
-	
-	protected ipcClient: IpcClient | null = null;
-	protected isIpcInitialized: boolean = false;
-	
+	protected readonly ipcService: IpcService;
+
 	protected readonly timers = new Map<string, NodeJS.Timeout>();	// <timerUID, timer>
 	protected readonly timerMeasurementTypes = new Map<string, string>();	// <timerUID, measurementType>
-	protected ipcTimer: NodeJS.Timeout | null = null;
+
 	
 	private get data(): string {
 		return this.ext.data || '';
@@ -38,59 +35,18 @@ export class MeasurementController extends SingletonAction<MeasurementSettings> 
 	}
 	private readonly ext: any = {};
 
-	private isIpcServerRunning: boolean = false;
-
-
 	public logger: ILogger = new StreamDeckLogger();
 
 
 	constructor() {
 		super();
-		streamDeck.system.onApplicationDidLaunch((ev: ApplicationDidLaunchEvent) => {
-			this.logger.info(`Launched: ${ev.application}`);
-			this.isIpcServerRunning = true;
-		});
-		streamDeck.system.onApplicationDidTerminate((ev: ApplicationDidTerminateEvent) => {
-			this.logger.info(`Terminated: ${ev.application}`);
-			this.isIpcServerRunning = false;
+		this.ipcService = new IpcService();
+		this.ipcService.onDataReceived.subscribe((data) => {
+			this.logger.info(`Data received: ${data}`);
+			this.data = data;
 		});
 	}
 
-	protected isIpcConnected() : boolean {
-		return this.ipcClient?.isConnected() ?? false;
-	}
-
-	protected ipcConnect() {
-		if (!this.isIpcInitialized) {
-			
-			this.ipcClient = new IpcClient();
-
-			this.ipcClient.onDataReceived.subscribe((data) => {
-				this.logger.info(`Data received: ${data}`);
-				this.data = data.toString();
-			});
-			
-			this.ipcClient.onConnectionOpened.subscribe(() => {
-				this.logger.info("Connection opened!");
-			});
-			
-			this.ipcClient.onConnectionClosed.subscribe(() => {
-				this.logger.info("Connection closed!");
-			});
-
-			this.isIpcInitialized = true;
-		}
-
-		this.ipcClient?.connect(this.IPC_PIPE_NAME);
-	}
-
-	protected ipcClose() {
-		if (this.ipcClient !== null) {
-			this.ipcClient.close();
-			this.ipcClient = null;
-			this.isIpcInitialized = false;
-		}
-	}
 
 	override onDidReceiveSettings(ev: DidReceiveSettingsEvent<MeasurementSettings>): void | Promise<void> {
 		const { settings } = ev.payload;
@@ -119,7 +75,7 @@ export class MeasurementController extends SingletonAction<MeasurementSettings> 
 			MeasurementController.initializeSettings(settings);
 		}
 
-		this.restartIpcTimer();
+		this.ipcService.restartIpcTimer();
 
 		settings.enabled = true;
 
@@ -128,29 +84,11 @@ export class MeasurementController extends SingletonAction<MeasurementSettings> 
 		return ev.action.setSettings(settings);
 	}
 
-	private restartIpcTimer() {
-		if (this.ipcTimer)
-			clearInterval(this.ipcTimer);
-
-		this.ipcTimer = setInterval(() => {
-
-			if (this.isIpcServerRunning
-				&& this.timers.size > 0
-			) {
-				if (!this.isIpcConnected()) {
-					this.ipcConnect();
-				}
-			} else {
-				this.ipcClose();
-			}
-
-		}, 250);
-	}
 
 	override onWillDisappear(ev: WillDisappearEvent<MeasurementSettings>): void | Promise<void> {
 		const { settings } = ev.payload;
 		this.killTimer(settings);
-		this.ipcClose();
+		this.ipcService.ipcClose();
 	}
 	
 	override async onKeyDown(ev: KeyDownEvent<MeasurementSettings>): Promise<void> {
