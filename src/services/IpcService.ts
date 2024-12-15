@@ -13,9 +13,9 @@ export class IpcService {
     protected ipcClient: IIpcClient | null = null;
     protected ipcTimer: NodeJS.Timeout | null = null;
 
-    public readonly onDataReceived = new Observable<string>();
-    // public readonly onConnectionOpened = new Observable<void>();
-    // public readonly onConnectionClosed = new Observable<void>();
+    readonly onDataReceived = new Observable<string>();
+    // readonly onConnectionOpened = new Observable<void>();
+    // readonly onConnectionClosed = new Observable<void>();
 
     constructor() {
         streamDeck.system.onApplicationDidLaunch((ev: ApplicationDidLaunchEvent) => {
@@ -52,7 +52,7 @@ export class IpcService {
         this.ipcClient?.connect(this.IPC_PIPE_NAME);
     }
 
-    public ipcClose() {
+    ipcClose() {
         if (this.ipcClient !== null) {
             this.ipcClient.close();
             this.ipcClient = null;
@@ -60,7 +60,7 @@ export class IpcService {
         }
     }
 
-    public restartIpcTimer() {
+    restartIpcTimer() {
         if (this.ipcTimer)
             clearInterval(this.ipcTimer);
 

@@ -5,11 +5,11 @@ import net from "net";
 export class IpcClient implements IIpcClient {
   private client: net.Socket | null = null;
   
-  public readonly onConnectionOpened = new Observable<void>();
-  public readonly onConnectionClosed = new Observable<void>();
-  public readonly onDataReceived = new Observable<string>();
+  readonly onConnectionOpened = new Observable<void>();
+  readonly onConnectionClosed = new Observable<void>();
+  readonly onDataReceived = new Observable<string>();
   
-  public connect(serverName: string) {
+  connect(serverName: string) {
     const pipeName = "\\\\.\\pipe\\" + serverName;
 
     try {
@@ -35,7 +35,7 @@ export class IpcClient implements IIpcClient {
     });
   }
 
-  public close() {
+  close() {
     if (this.client) {
       this.client.end();
       this.client = null;
@@ -43,7 +43,7 @@ export class IpcClient implements IIpcClient {
     }
   }
 
-  public isConnected() {
+  isConnected() {
     return this.client !== null;
   }
 }

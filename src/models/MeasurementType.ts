@@ -1,8 +1,8 @@
 export class MeasurementType {
-    public Name: string = '';
-    public Unit: string = '';
-    public Min: number = 0;
-    public Max: number = 0;
-    public Base: number = 0;
-    public Format: string | null = null;
+    Name: string = '';
+    Unit: string = '';
+    Min: number = 0;
+    Max: number = 0;
+    Base: number = 0;
+    Format: string | null = null;
 }

@@ -1,7 +1,7 @@
 import { AfterburnerMeasurement } from "../models/AfterburnerMeasurement";
 
 export class SvgRenderer {
-    public static render(measurement: AfterburnerMeasurement): string {
+    static render(measurement: AfterburnerMeasurement): string {
         const valStr: string = (measurement.Type.Format)
             ? measurement.Value.toFixed(3)
             : Math.round(measurement.Value).toFixed();

@@ -15,7 +15,7 @@ export class MeasurementTimerManager {
                 private readonly measurementTypesProvider: IMeasurementTypesProvider
     ) {}
 
-    public createTimer(
+    createTimer(
         action: any,
         measurementType: string,
         updateInterval: number = 500
@@ -49,7 +49,7 @@ export class MeasurementTimerManager {
         return uniqueId;
     }
 
-    public killTimer(timerUID: string | null | undefined): void {
+    killTimer(timerUID: string | null | undefined): void {
         if (!timerUID) return;
 
         if (this.timers.has(timerUID)) {
@@ -62,15 +62,15 @@ export class MeasurementTimerManager {
         }
     }
 
-    public setMeasurementTypeForTimer(timerUID: string, measurementType: string): void {
+    setMeasurementTypeForTimer(timerUID: string, measurementType: string): void {
         this.timerMeasurementTypes.set(timerUID, measurementType);
     }
 
-    public getMeasurementTypeForTimer(timerUID: string): string {
+    getMeasurementTypeForTimer(timerUID: string): string {
         return this.timerMeasurementTypes.get(timerUID) || '';
     }
 
-    public clearAllTimers(): void {
+    clearAllTimers(): void {
         this.timers.forEach((timer, timerUID) => {
             clearInterval(timer);
             this.logger.debug(`Timer cleared: ${timerUID}`);
@@ -79,7 +79,7 @@ export class MeasurementTimerManager {
         this.timerMeasurementTypes.clear();
     }
 
-    public restartMeasurementTimer(settings: MeasurementSettings, ev: any): void {
+    restartMeasurementTimer(settings: MeasurementSettings, ev: any): void {
         settings.measurementType = settings.timer
             ? this.getMeasurementTypeForTimer(settings.timer)
             : this.measurementTypesProvider.getDefault();
@@ -97,7 +97,7 @@ export class MeasurementTimerManager {
         }
     }
 
-    public setNextMeasurementForTimer(settings: MeasurementSettings): void {
+    setNextMeasurementForTimer(settings: MeasurementSettings): void {
         settings.measurementType = this.measurementTypesProvider.getNext(settings.measurementType);
 
         if (settings.timer != null) {
