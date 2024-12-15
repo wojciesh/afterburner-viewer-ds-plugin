@@ -1,14 +1,15 @@
-import { IIpcClient } from "./IIpcClient";
-import { Observable } from "../helpers/Observable";
+import { IIpcProvider } from "./IIpcProvider";
+import { Observable } from "../../helpers/Observable";
 import net from "net";
 
-export class IpcClient implements IIpcClient {
-  private client: net.Socket | null = null;
-  
+export class PipeIpcProvider implements IIpcProvider {
+
   readonly onConnectionOpened = new Observable<void>();
   readonly onConnectionClosed = new Observable<void>();
   readonly onDataReceived = new Observable<string>();
-  
+
+  private client: net.Socket | null = null;
+
   connect(serverName: string) {
     const pipeName = "\\\\.\\pipe\\" + serverName;
 

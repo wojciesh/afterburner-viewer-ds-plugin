@@ -11,6 +11,7 @@ import { ILogger } from "../helpers/logger/ILogger";
 import { IpcService } from "../services/IpcService";
 import { MeasurementTimerManager } from "../services/MeasurementTimerManager";
 import { IMeasurementTypesProvider } from "../providers/IMeasurementTypesProvider";
+import { IIpcProviderFactory } from "../providers/ipc/IIpcProviderFactory";
 
 @action({ UUID: "wsh.afterburner-viewer.measurement" })
 export class MeasurementController extends SingletonAction<MeasurementSettings> {
@@ -28,12 +29,13 @@ export class MeasurementController extends SingletonAction<MeasurementSettings> 
 
 
 	constructor(
+		private readonly ipcFactory: IIpcProviderFactory,
 		private readonly measurementTypesProvider: IMeasurementTypesProvider,
-		private readonly logger: ILogger,
+		private readonly logger: ILogger
 	) {
 		super();
 
-		this.ipcService = new IpcService();
+		this.ipcService = new IpcService(ipcFactory);
 		this.ipcService.onDataReceived.subscribe((data) => {
 			this.logger.info(`Data received: ${data}`);
 			this.data = data;

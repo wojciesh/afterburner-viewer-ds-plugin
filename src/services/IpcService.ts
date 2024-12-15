@@ -1,7 +1,7 @@
-import {IIpcClient} from "./IIpcClient";
-import {IpcClient} from "./IpcClient";
-import {ApplicationDidLaunchEvent, ApplicationDidTerminateEvent, streamDeck} from "@elgato/streamdeck";
-import {Observable} from "../helpers/Observable";
+import { IIpcProvider } from "../providers/ipc/IIpcProvider";
+import { Observable } from "../helpers/Observable";
+import { IIpcProviderFactory } from "../providers/ipc/IIpcProviderFactory";
+import { ApplicationDidLaunchEvent, ApplicationDidTerminateEvent, streamDeck } from "@elgato/streamdeck";
 
 export class IpcService {
 
@@ -10,14 +10,14 @@ export class IpcService {
     protected isIpcInitialized: boolean = false;
     private isIpcServerRunning: boolean = false;
 
-    protected ipcClient: IIpcClient | null = null;
+    protected ipcProvider: IIpcProvider | null = null;
     protected ipcTimer: NodeJS.Timeout | null = null;
 
     readonly onDataReceived = new Observable<string>();
     // readonly onConnectionOpened = new Observable<void>();
     // readonly onConnectionClosed = new Observable<void>();
 
-    constructor() {
+    constructor(private readonly ipcFactory: IIpcProviderFactory) {
         streamDeck.system.onApplicationDidLaunch((ev: ApplicationDidLaunchEvent) => {
             streamDeck.logger.info(`ApplicationDidLaunchEvent: ${ev.application}`);
             this.isIpcServerRunning = true;
@@ -29,15 +29,15 @@ export class IpcService {
     }
 
     protected isIpcConnected() : boolean {
-        return this.ipcClient?.isConnected() ?? false;
+        return this.ipcProvider?.isConnected() ?? false;
     }
 
     protected ipcConnect() {
         if (!this.isIpcInitialized) {
 
-            this.ipcClient = new IpcClient();
+            this.ipcProvider = this.ipcFactory.create();
 
-            this.ipcClient.onDataReceived.subscribe((data) => {
+            this.ipcProvider.onDataReceived.subscribe((data) => {
                 this.onDataReceived.notify(data);
             });
 
@@ -49,13 +49,13 @@ export class IpcService {
             this.isIpcInitialized = true;
         }
 
-        this.ipcClient?.connect(this.IPC_PIPE_NAME);
+        this.ipcProvider?.connect(this.IPC_PIPE_NAME);
     }
 
     ipcClose() {
-        if (this.ipcClient !== null) {
-            this.ipcClient.close();
-            this.ipcClient = null;
+        if (this.ipcProvider !== null) {
+            this.ipcProvider.close();
+            this.ipcProvider = null;
             this.isIpcInitialized = false;
         }
     }

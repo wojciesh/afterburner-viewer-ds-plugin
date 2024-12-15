@@ -1,6 +1,7 @@
-import { Observable } from "../helpers/Observable";
+import { Observable } from "../../helpers/Observable";
 
-export interface IIpcClient {
+export interface IIpcProvider {
+
     onConnectionOpened: Observable<void>;
     onConnectionClosed: Observable<void>;
     onDataReceived: Observable<string>;
