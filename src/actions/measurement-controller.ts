@@ -73,14 +73,10 @@ export class MeasurementController extends SingletonAction<MeasurementSettings> 
 	override async onKeyDown(ev: KeyDownEvent<MeasurementSettings>): Promise<void> {
 		try {
 			const { settings } = ev.payload;
-
 			if (!this.isSettingsValid(settings)) {
 				this.initializeSettings(settings);
 			}
-
 			this.timerManager.setNextMeasurementForTimer(settings);
-			this.timerManager.restartMeasurementTimer(settings, ev);
-
 			await ev.action.setSettings(settings);
 		} catch (e) {
 			this.logger.error(`Error in onKeyDown: ${e}`);
