@@ -1,17 +1,19 @@
+import { IIpcClient } from "./IIpcClient";
+import { Observable } from "../helpers/Observable";
 import net from "net";
 
-export class IpcClient {
+export class IpcClient implements IIpcClient {
   private client: net.Socket | null = null;
   
   public readonly onConnectionOpened = new Observable<void>();
   public readonly onConnectionClosed = new Observable<void>();
   public readonly onDataReceived = new Observable<string>();
   
-  public ipcConnect(serverName: string) {
+  public connect(serverName: string) {
     const pipeName = "\\\\.\\pipe\\" + serverName;
 
     try {
-      this.ipcClose();
+      this.close();
     } catch { }
 
     this.client = net.createConnection(pipeName, () => {
@@ -24,16 +26,16 @@ export class IpcClient {
     });
 
     this.client.on("end", () => {
-      this.ipcClose();
+      this.close();
     });
 
     this.client.on("error", (err) => {
     //   console.error(`IPC Client error: ${err.message}`);
-      this.ipcClose();
+      this.close();
     });
   }
 
-  public ipcClose() {
+  public close() {
     if (this.client) {
       this.client.end();
       this.client = null;
@@ -44,24 +46,4 @@ export class IpcClient {
   public isConnected() {
     return this.client !== null;
   }
-}
-
-export class Observable<T> {
-	private readonly observers = new Set<(data: T) => void>();
-
-	subscribe(func: (data: T) => void) {
-	  this.observers.add(func);
-	}
-  
-	unsubscribe(func: (data: T) => void) {
-	  this.observers.delete(func);
-	}
-  
-	unsubscribeAll() {
-	  this.observers.clear();
-	}
-  
-	notify(data: T) {
-	  this.observers.forEach((observer) => observer(data));
-	}
 }

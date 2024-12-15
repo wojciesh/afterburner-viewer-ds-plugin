@@ -10,7 +10,7 @@ import {
 	ApplicationDidTerminateEvent
 } from "@elgato/streamdeck";
 import {randomUUID} from 'crypto';
-import {IpcClient} from "./IpcClient";
+import {IpcClient} from "../services/IpcClient";
 
 import { AfterburnerMeasurement } from "../models/AfterburnerMeasurement";
 import { MeasurementSettings } from "../models/MeasurementSettings";
@@ -81,12 +81,12 @@ export class MeasurementController extends SingletonAction<MeasurementSettings> 
 			this.isIpcInitialized = true;
 		}
 
-		this.ipcClient?.ipcConnect(this.IPC_PIPE_NAME);
+		this.ipcClient?.connect(this.IPC_PIPE_NAME);
 	}
 
 	protected ipcClose() {
 		if (this.ipcClient !== null) {
-			this.ipcClient.ipcClose();
+			this.ipcClient.close();
 			this.ipcClient = null;
 			this.isIpcInitialized = false;
 		}
