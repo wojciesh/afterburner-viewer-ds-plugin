@@ -2,12 +2,18 @@ import { randomUUID } from 'crypto';
 import { ILogger } from "../helpers/logger/ILogger";
 import { SvgRenderer } from "../helpers/SvgRenderer";
 import { AfterburnerMeasurement } from "../models/AfterburnerMeasurement";
+import { MeasurementSettings } from "../models/MeasurementSettings";
+import { IMeasurementTypesProvider } from "../providers/IMeasurementTypesProvider";
 
 export class MeasurementTimerManager {
+
     private readonly timers = new Map<string, NodeJS.Timeout>(); // <timerUID, timer>
     private readonly timerMeasurementTypes = new Map<string, string>(); // <timerUID, measurementType>
 
-    constructor(private readonly logger: ILogger, private readonly getData: () => string) {}
+    constructor(private readonly logger: ILogger,
+                private readonly getData: () => string,
+                private readonly measurementTypesProvider: IMeasurementTypesProvider
+    ) {}
 
     public createTimer(
         action: any,
@@ -43,7 +49,7 @@ export class MeasurementTimerManager {
         return uniqueId;
     }
 
-    public killTimer(timerUID: string | null): void {
+    public killTimer(timerUID: string | null | undefined): void {
         if (!timerUID) return;
 
         if (this.timers.has(timerUID)) {
@@ -71,5 +77,31 @@ export class MeasurementTimerManager {
         });
         this.timers.clear();
         this.timerMeasurementTypes.clear();
+    }
+
+    public restartMeasurementTimer(settings: MeasurementSettings, ev: any): void {
+        settings.measurementType = settings.timer
+            ? this.getMeasurementTypeForTimer(settings.timer)
+            : this.measurementTypesProvider.getDefault();
+
+        this.killTimer(settings.timer);
+
+        if (settings.enabled) {
+            this.logger.debug("Starting timer...");
+            try {
+                settings.timer = this.createTimer(ev.action, settings.measurementType);
+                this.setMeasurementTypeForTimer(settings.timer, settings.measurementType);
+            } catch (e) {
+                this.logger.error(`Error starting timer: ${e}`);
+            }
+        }
+    }
+
+    public setNextMeasurementForTimer(settings: MeasurementSettings): void {
+        settings.measurementType = this.measurementTypesProvider.getNext(settings.measurementType);
+
+        if (settings.timer != null) {
+            this.setMeasurementTypeForTimer(settings.timer, settings.measurementType);
+        }
     }
 }

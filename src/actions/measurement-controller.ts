@@ -3,58 +3,47 @@ import {
 	DidReceiveSettingsEvent,
 	KeyDownEvent,
 	SingletonAction,
-	streamDeck,
 	WillAppearEvent,
-	WillDisappearEvent,
-	ApplicationDidLaunchEvent,
-	ApplicationDidTerminateEvent
+	WillDisappearEvent
 } from "@elgato/streamdeck";
 import { MeasurementSettings } from "../models/MeasurementSettings";
 import { ILogger } from "../helpers/logger/ILogger";
-import { StreamDeckLogger } from "../helpers/logger/StreamDeckLogger";
 import { IpcService } from "../services/IpcService";
-import { MeasurementTimerManager } from "./MeasurementTimerManager";
+import { MeasurementTimerManager } from "../services/MeasurementTimerManager";
+import { IMeasurementTypesProvider } from "../providers/IMeasurementTypesProvider";
 
 @action({ UUID: "wsh.afterburner-viewer.measurement" })
 export class MeasurementController extends SingletonAction<MeasurementSettings> {
+
 	private readonly ipcService: IpcService;
 	private readonly timerManager: MeasurementTimerManager;
-	private readonly ext: any = {};
-	public logger: ILogger = new StreamDeckLogger();
 
+	private _data: string = '';
 	private get data(): string {
-		return this.ext.data || '';
+		return this._data || '';
 	}
 	private set data(value: string) {
-		this.ext.data = value;
+		this._data = value;
 	}
 
-	public static allMeasurementTypes = [
-		'Power',
-		'CPU usage',
-		'CPU clock',
-		'CPU power',
-		'Core clock',
-		'RAM usage',
-		'Memory usage',
-		'Memory clock',
-		'Commit charge',
-		'GPU temperature',
-		'GPU usage',
-		'Fan speed',
-		'Fan tachometer',
-		'FB usage',
-	];
 
-	constructor() {
+	constructor(
+		private readonly measurementTypesProvider: IMeasurementTypesProvider,
+		private readonly logger: ILogger,
+	) {
 		super();
-		this.ipcService = new IpcService();
-		this.timerManager = new MeasurementTimerManager(this.logger, () => this.data);
 
+		this.ipcService = new IpcService();
 		this.ipcService.onDataReceived.subscribe((data) => {
 			this.logger.info(`Data received: ${data}`);
 			this.data = data;
 		});
+
+		this.timerManager = new MeasurementTimerManager(
+			this.logger,
+			() => this.data,
+			measurementTypesProvider
+		);
 	}
 
 	override onDidReceiveSettings(ev: DidReceiveSettingsEvent<MeasurementSettings>): void | Promise<void> {
@@ -73,14 +62,14 @@ export class MeasurementController extends SingletonAction<MeasurementSettings> 
 	override onWillAppear(ev: WillAppearEvent<MeasurementSettings>): void | Promise<void> {
 		const { settings } = ev.payload;
 
-		if (!MeasurementController.isSettingsValid(settings)) {
-			MeasurementController.initializeSettings(settings);
+		if (!this.isSettingsValid(settings)) {
+			this.initializeSettings(settings);
 		}
 
 		this.ipcService.restartIpcTimer();
 
 		settings.enabled = true;
-		this.restartMeasurementTimer(settings, ev);
+		this.timerManager.restartMeasurementTimer(settings, ev);
 		return ev.action.setSettings(settings);
 	}
 
@@ -94,12 +83,12 @@ export class MeasurementController extends SingletonAction<MeasurementSettings> 
 		try {
 			const { settings } = ev.payload;
 
-			if (!MeasurementController.isSettingsValid(settings)) {
-				MeasurementController.initializeSettings(settings);
+			if (!this.isSettingsValid(settings)) {
+				this.initializeSettings(settings);
 			}
 
-			this.setNextMeasurementForTimer(settings);
-			this.restartMeasurementTimer(settings, ev);
+			this.timerManager.setNextMeasurementForTimer(settings);
+			this.timerManager.restartMeasurementTimer(settings, ev);
 
 			await ev.action.setSettings(settings);
 		} catch (e) {
@@ -107,40 +96,13 @@ export class MeasurementController extends SingletonAction<MeasurementSettings> 
 		}
 	}
 
-	private setNextMeasurementForTimer(settings: MeasurementSettings): void {
-		const idx = MeasurementController.allMeasurementTypes.indexOf(settings.measurementType);
-		settings.measurementType =
-			MeasurementController.allMeasurementTypes[(idx + 1) % MeasurementController.allMeasurementTypes.length];
-
-		if (settings.timer != null) {
-			this.timerManager.setMeasurementTypeForTimer(settings.timer, settings.measurementType);
-		}
-	}
-
-	private restartMeasurementTimer(settings: MeasurementSettings, ev: any): void {
-		settings.measurementType = settings.timer
-			? this.timerManager.getMeasurementTypeForTimer(settings.timer)
-			: MeasurementController.allMeasurementTypes[0];
-
-		this.timerManager.killTimer(settings.timer);
-
-		if (settings.enabled) {
-			this.logger.debug("Starting timer...");
-			try {
-				settings.timer = this.timerManager.createTimer(ev.action, settings.measurementType);
-			} catch (e) {
-				this.logger.error(`Error starting timer: ${e}`);
-			}
-		}
-	}
-
-	protected static initializeSettings(settings: MeasurementSettings): void {
+	protected initializeSettings(settings: MeasurementSettings): void {
 		settings.enabled = false;
 		settings.timer = null;
-		settings.measurementType = MeasurementController.allMeasurementTypes[0];
+		settings.measurementType = this.measurementTypesProvider.getDefault();
 	}
 
-	protected static isSettingsValid(settings: MeasurementSettings): boolean {
+	protected isSettingsValid(settings: MeasurementSettings): boolean {
 		return typeof settings.enabled !== 'undefined' && settings.enabled !== null;
 	}
 }
