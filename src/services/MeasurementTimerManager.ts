@@ -5,6 +5,7 @@ import { AfterburnerMeasurement } from "../models/AfterburnerMeasurement";
 import { MeasurementSettings } from "../models/MeasurementSettings";
 import { IMeasurementTypesProvider } from "../providers/measurement-types/IMeasurementTypesProvider";
 import { IpcService } from "./IpcService";
+import {type} from "node:os";
 
 export interface IMeasurementsManager {
     set data(value: string);
@@ -16,7 +17,7 @@ export interface IMeasurementsManager {
 
 export class MeasurementTimerManager implements IMeasurementsManager, IActivityChecker {
 
-    private readonly timers = new Map<string, (data: string) => void | Promise<void>>();  // <timerUID, function>
+    private readonly timers = new Map<string, (data: AfterburnerMeasurement) => void | Promise<void>>();  // <timerUID, function>
     private readonly timerMeasurementTypes = new Map<string, string>(); // <timerUID, measurementType>
 
     private _data: string = '';
@@ -25,9 +26,23 @@ export class MeasurementTimerManager implements IMeasurementsManager, IActivityC
     }
     set data(value: string) {
         this._data = value;
+        this.fireFunction(value);
+    }
 
-        this.timers.forEach(async (timerFunc, timerUID) => {
-            await timerFunc(value);
+    private fireFunction(data: string) {
+        if (!data) return;
+        const measurements = JSON.parse(data) as AfterburnerMeasurement[];
+        measurements.forEach(measurement => {
+            const allTimersWithType = Array.from(this.timerMeasurementTypes.entries())
+                .filter(([timerUID, measurementType]) =>
+                    measurementType === measurement.Type.Name)
+                .map(([timerUID, measurementType]) =>
+                    timerUID);
+            Array.from(this.timers)
+                .filter(([timerUID]) =>
+                    allTimersWithType.includes(timerUID))
+                .forEach(async ([timerUID, timerFunc]) =>
+                    await timerFunc(measurement));
         });
     }
 
@@ -40,12 +55,9 @@ export class MeasurementTimerManager implements IMeasurementsManager, IActivityC
         this.setMeasurementTypeForTimer(uniqueId, measurementType);
         this.timers.set(
             uniqueId,
-            async (aData: string) => {
-                if (!aData) return;
+            async (measurement: AfterburnerMeasurement) => {
+                if (!measurement) return;
                 await action.setTitle(``);
-                const type: string = this.getMeasurementTypeForTimer(uniqueId);
-                const measurements = JSON.parse(aData) as AfterburnerMeasurement[];
-                const measurement = measurements.find((m: any) => m.Type.Name === type);
                 if (!measurement) {
                     this.logger.error(`Measurement not found for type: ${type}`);
                     return;
