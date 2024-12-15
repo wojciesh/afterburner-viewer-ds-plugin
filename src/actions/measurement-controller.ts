@@ -19,30 +19,22 @@ export class MeasurementController extends SingletonAction<MeasurementSettings> 
 	private readonly ipcService: IpcService;
 	private readonly timerManager: MeasurementTimerManager;
 
-	private _data: string = '';
-	private get data(): string {
-		return this._data || '';
-	}
-	private set data(value: string) {
-		this._data = value;
-	}
-
-
 	constructor(
-		private readonly ipcFactory: IIpcProviderFactory,
+		ipcFactory: IIpcProviderFactory,
 		private readonly measurementTypesProvider: IMeasurementTypesProvider,
 		private readonly logger: ILogger
 	) {
 		super();
 
 		this.timerManager = new MeasurementTimerManager(
-			logger,
-			measurementTypesProvider
+			measurementTypesProvider,
+			logger
 		);
 
 		this.ipcService = new IpcService(ipcFactory, this.timerManager);
-
-		this.timerManager.init(this.ipcService);
+		this.ipcService.onDataReceived.subscribe((data) => {
+			this.timerManager.data = data;
+		});
 	}
 
 	override onDidReceiveSettings(ev: DidReceiveSettingsEvent<MeasurementSettings>): void | Promise<void> {

@@ -11,17 +11,17 @@ export class MeasurementTimerManager implements IActivityChecker {
     private readonly timers = new Map<string, NodeJS.Timeout>(); // <timerUID, timer>
     private readonly timerMeasurementTypes = new Map<string, string>(); // <timerUID, measurementType>
 
-    private data: string = '';
-
-    constructor(private readonly logger: ILogger,
-                private readonly measurementTypesProvider: IMeasurementTypesProvider
-    ) {}
-
-    init(ipcService: IpcService): void {
-        ipcService.onDataReceived.subscribe((data) => {
-            this.data = data;
-        });
+    private _data: string = '';
+    get data(): string {
+        return this._data;
     }
+    set data(value: string) {
+        this._data = value;
+    }
+
+    constructor(private readonly measurementTypesProvider: IMeasurementTypesProvider,
+                private readonly logger: ILogger
+    ) {}
 
     createTimer(action: any, measurementType: string, updateInterval: number = 500): string {
         const uniqueId = randomUUID();

@@ -19,7 +19,7 @@ export class IpcService {
     // readonly onConnectionClosed = new Observable<void>();
 
     constructor(private readonly ipcFactory: IIpcProviderFactory,
-                private readonly mesurementsTimersActivityChecker: IActivityChecker
+                private readonly measurementTimersActivityChecker: IActivityChecker
     ) {
         streamDeck.system.onApplicationDidLaunch((ev: ApplicationDidLaunchEvent) => {
             streamDeck.logger.info(`ApplicationDidLaunchEvent: ${ev.application}`);
@@ -83,6 +83,6 @@ export class IpcService {
     }
 
     private isAnyMeasurementActive() {
-        return this.mesurementsTimersActivityChecker.isAnyActive();
+        return this.measurementTimersActivityChecker.isAnyActive();
     }
 }
