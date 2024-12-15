@@ -3,7 +3,7 @@ import { ILogger } from "../helpers/logger/ILogger";
 import { SvgRenderer } from "../helpers/SvgRenderer";
 import { AfterburnerMeasurement } from "../models/AfterburnerMeasurement";
 import { MeasurementSettings } from "../models/MeasurementSettings";
-import { IMeasurementTypesProvider } from "../providers/IMeasurementTypesProvider";
+import { IMeasurementTypesProvider } from "../providers/measurement-types/IMeasurementTypesProvider";
 
 export class MeasurementTimerManager {
 

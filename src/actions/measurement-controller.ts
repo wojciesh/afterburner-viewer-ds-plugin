@@ -10,7 +10,7 @@ import { MeasurementSettings } from "../models/MeasurementSettings";
 import { ILogger } from "../helpers/logger/ILogger";
 import { IpcService } from "../services/IpcService";
 import { MeasurementTimerManager } from "../services/MeasurementTimerManager";
-import { IMeasurementTypesProvider } from "../providers/IMeasurementTypesProvider";
+import { IMeasurementTypesProvider } from "../providers/measurement-types/IMeasurementTypesProvider";
 import { IIpcProviderFactory } from "../providers/ipc/IIpcProviderFactory";
 
 @action({ UUID: "wsh.afterburner-viewer.measurement" })
