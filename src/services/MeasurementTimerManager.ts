@@ -5,7 +5,7 @@ import { AfterburnerMeasurement } from "../models/AfterburnerMeasurement";
 import { MeasurementSettings } from "../models/MeasurementSettings";
 import { IMeasurementTypesProvider } from "../providers/measurement-types/IMeasurementTypesProvider";
 
-export class MeasurementTimerManager {
+export class MeasurementTimerManager implements IActivityChecker {
 
     private readonly timers = new Map<string, NodeJS.Timeout>(); // <timerUID, timer>
     private readonly timerMeasurementTypes = new Map<string, string>(); // <timerUID, measurementType>
@@ -70,15 +70,6 @@ export class MeasurementTimerManager {
         return this.timerMeasurementTypes.get(timerUID) || '';
     }
 
-    clearAllTimers(): void {
-        this.timers.forEach((timer, timerUID) => {
-            clearInterval(timer);
-            this.logger.debug(`Timer cleared: ${timerUID}`);
-        });
-        this.timers.clear();
-        this.timerMeasurementTypes.clear();
-    }
-
     restartMeasurementTimer(settings: MeasurementSettings, ev: any): void {
         settings.measurementType = settings.timer
             ? this.getMeasurementTypeForTimer(settings.timer)
@@ -104,4 +95,12 @@ export class MeasurementTimerManager {
             this.setMeasurementTypeForTimer(settings.timer, settings.measurementType);
         }
     }
+
+    isAnyActive(): boolean {
+        return this.timers.size > 0;
+    }
+}
+
+export interface IActivityChecker {
+    isAnyActive(): boolean;
 }

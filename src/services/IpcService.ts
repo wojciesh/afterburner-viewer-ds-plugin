@@ -2,6 +2,7 @@ import { IIpcProvider } from "../providers/ipc/IIpcProvider";
 import { Observable } from "../helpers/Observable";
 import { IIpcProviderFactory } from "../providers/ipc/IIpcProviderFactory";
 import { ApplicationDidLaunchEvent, ApplicationDidTerminateEvent, streamDeck } from "@elgato/streamdeck";
+import { IActivityChecker } from "./MeasurementTimerManager";
 
 export class IpcService {
 
@@ -17,7 +18,9 @@ export class IpcService {
     // readonly onConnectionOpened = new Observable<void>();
     // readonly onConnectionClosed = new Observable<void>();
 
-    constructor(private readonly ipcFactory: IIpcProviderFactory) {
+    constructor(private readonly ipcFactory: IIpcProviderFactory,
+                private readonly mesurementsTimersActivityChecker: IActivityChecker
+    ) {
         streamDeck.system.onApplicationDidLaunch((ev: ApplicationDidLaunchEvent) => {
             streamDeck.logger.info(`ApplicationDidLaunchEvent: ${ev.application}`);
             this.isIpcServerRunning = true;
@@ -80,7 +83,6 @@ export class IpcService {
     }
 
     private isAnyMeasurementActive() {
-        return true;    // TODO: Implement this!
-        // return this.timers.size > 0;
+        return this.mesurementsTimersActivityChecker.isAnyActive();
     }
 }
