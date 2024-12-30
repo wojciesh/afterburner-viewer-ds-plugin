@@ -12,6 +12,13 @@ import { IpcService } from "../services/IpcService";
 import { MeasurementTimerManager } from "../services/MeasurementTimerManager";
 import { IMeasurementTypesProvider } from "../providers/measurement-types/IMeasurementTypesProvider";
 import { IIpcProviderFactory } from "../providers/ipc/IIpcProviderFactory";
+import {AfterburnerMeasurement} from "../models/AfterburnerMeasurement";
+import {MeasurementType} from "../models/MeasurementType";
+
+type MessagePacket = {
+	messageType: string;
+	payload: any;
+}
 
 @action({ UUID: "wsh.afterburner-viewer.measurement" })
 export class MeasurementController extends SingletonAction<MeasurementSettings> {
@@ -32,9 +39,32 @@ export class MeasurementController extends SingletonAction<MeasurementSettings> 
 		);
 
 		this.ipcService = new IpcService(ipcFactory, this.timerManager);
-		this.ipcService.onDataReceived.subscribe((data) => {
-			this.timerManager.data = data;
+		this.ipcService.onDataReceived.subscribe((jsonData) => {
+			this.handlePacket(jsonData);
 		});
+	}
+
+	protected handlePacket(jsonData: string) {
+		const mp = JSON.parse(jsonData) as MessagePacket;
+		const isTypesPacket = () => mp.messageType === 'MeasurementTypes';
+		const handleTypesPacket = () => {
+			const names = (mp.payload as MeasurementType[])
+				.map((mt) => mt.Name);
+			this.measurementTypesProvider.setTypes(names);
+		}
+		const handleMeasurementsPacket = () => {
+			this.timerManager.data = JSON.stringify(
+				mp.payload as AfterburnerMeasurement[]);
+		}
+
+		try {
+			if (isTypesPacket())
+				handleTypesPacket();
+			else
+				handleMeasurementsPacket();
+		} catch (e) {
+			this.logger.error(`Error in handlePacket: ${e}`);
+		}
 	}
 
 	override onDidReceiveSettings(ev: DidReceiveSettingsEvent<MeasurementSettings>): void | Promise<void> {

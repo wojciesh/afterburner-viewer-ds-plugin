@@ -9,23 +9,70 @@
 
 <body>
     <sdpi-item label="Measurement type">
-        <sdpi-select setting="measurementType" placeholder="Choose measurement type">
-            <option value="GPU temperature">GPU temperature</option>
-            <option value="GPU usage">GPU usage</option>
-            <option value="FB usage">FB usage</option>
-            <option value="Memory usage">Memory usage</option>
-            <option value="Core clock">Core clock</option>
-            <option value="Memory clock">Memory clock</option>
-            <option value="Power">Power</option>
-            <option value="Fan speed">Fan speed</option>
-            <option value="Fan tachometer">Fan tachometer</option>
-            <option value="CPU usage">CPU usage</option>
-            <option value="CPU clock">CPU clock</option>
-            <option value="CPU power">CPU power</option>
-            <option value="RAM usage">RAM usage</option>
-            <option value="Commit charge">Commit charge</option>
+        <sdpi-select id="measurementType" setting="measurementType" placeholder="Choose measurement type">
         </sdpi-select>
+
+<!--        <sdpi-select setting="measurementType" placeholder="Choose measurement type">-->
+<!--            <option value="GPU temperature">GPU temperature</option>-->
+<!--            <option value="GPU usage">GPU usage</option>-->
+<!--            <option value="FB usage">FB usage</option>-->
+<!--            <option value="Memory usage">Memory usage</option>-->
+<!--            <option value="Core clock">Core clock</option>-->
+<!--            <option value="Memory clock">Memory clock</option>-->
+<!--            <option value="Power">Power</option>-->
+<!--            <option value="Fan speed">Fan speed</option>-->
+<!--            <option value="Fan tachometer">Fan tachometer</option>-->
+<!--            <option value="CPU usage">CPU usage</option>-->
+<!--            <option value="CPU clock">CPU clock</option>-->
+<!--            <option value="CPU power">CPU power</option>-->
+<!--            <option value="RAM usage">RAM usage</option>-->
+<!--            <option value="Commit charge">Commit charge</option>-->
+<!--        </sdpi-select>-->
     </sdpi-item>
+
+    <script>
+        const { streamDeckClient } = SDPIComponents;
+        // streamDeckClient.subsc
+
+
+        setSelectOptions('measurementType', [
+            'GPU temperature',
+            'GPU usage',
+            'FB usage',
+            'Memory usage',
+            'Core clock',
+            'Memory clock',
+            'Power',
+            'Fan speed',
+            'Fan tachometer',
+            'CPU usage',
+            'CPU clock',
+            'CPU power',
+            'RAM usage',
+            'Commit charge'
+        ]);
+
+
+        function setSelectOptions(selectId, options) {
+            const selectElement = document.getElementById(selectId);
+
+            if (!selectElement) {
+                console.error(`Element with ID '${selectId}' not found.`);
+                return;
+            }
+
+            // Clear existing options
+            selectElement.innerHTML = '';
+
+            // Add new options
+            options.forEach(optionValue => {
+                const option = document.createElement('option');
+                option.value = optionValue;
+                option.textContent = optionValue;
+                selectElement.appendChild(option);
+            });
+        }
+    </script>
 </body>
 
 </html>

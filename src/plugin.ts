@@ -1,13 +1,13 @@
 import streamDeck, {LogLevel} from "@elgato/streamdeck";
 import { MeasurementController } from "./actions/measurement-controller";
-import { BasicMeasurementTypesProvider } from "./providers/measurement-types/BasicMeasurementTypesProvider";
+import { DynamicMeasurementTypesProvider } from "./providers/measurement-types/DynamicMeasurementTypesProvider";
 import { PipeIpcProviderFactory } from "./providers/ipc/PipeIpcProviderFactory";
 
 streamDeck.logger.setLevel(LogLevel.DEBUG);
 
 const measurementController = new MeasurementController(
     new PipeIpcProviderFactory(),
-    new BasicMeasurementTypesProvider(),
+    new DynamicMeasurementTypesProvider(),
     streamDeck.logger);
 
 streamDeck.actions.registerAction(measurementController);

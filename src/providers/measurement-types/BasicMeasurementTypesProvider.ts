@@ -2,7 +2,7 @@ import {IMeasurementTypesProvider} from "./IMeasurementTypesProvider";
 
 export class BasicMeasurementTypesProvider implements IMeasurementTypesProvider {
 
-    private readonly allMeasurementTypes = [
+    protected allMeasurementTypes = [
         'Power',
         'CPU usage',
         'CPU clock',
@@ -31,5 +31,9 @@ export class BasicMeasurementTypesProvider implements IMeasurementTypesProvider 
         return this.allMeasurementTypes[
                 (this.allMeasurementTypes.indexOf(measurementType) + 1)
                 % this.allMeasurementTypes.length];
+    }
+
+    setTypes(newTypes: string[]): void {
+        return; // Cannot change types in basic provider
     }
 }
