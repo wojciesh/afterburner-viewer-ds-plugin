@@ -2,13 +2,13 @@
 	"Name": "afterburner-viewer",
 	"Version": "0.1.0.0",
 	"Author": "com.github/wojciesh",
+	"PropertyInspectorPath": "ui/measurement.html",
 	"Actions": [
 		{
-			"Name": "Counter",
-			"UUID": "wsh.afterburner-viewer.increment",
+			"Name": "Measurement",
+			"UUID": "wsh.afterburner-viewer.measurement",
 			"Icon": "imgs/actions/counter/icon",
-			"Tooltip": "Displays a count, which increments by one on press.",
-			"PropertyInspectorPath": "ui/increment-counter.html",
+			"Tooltip": "Displays a measurement from MSI Afterburner.",
 			"Controllers": [
 				"Keypad"
 			],
